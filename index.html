@@ -1671,7 +1671,7 @@
         if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
         if ('physicallyCorrectLights' in renderer) renderer.physicallyCorrectLights = true;
         if (THREE.ACESFilmicToneMapping) renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = renderQuality === 'low' ? 0.94 : 1.00;
+        renderer.toneMappingExposure = renderQuality === 'low' ? 1.02 : 1.08;
 
         const pixelRatioCap = renderQuality === 'high' ? 1.15 : renderQuality === 'balanced' ? 1.0 : 0.85;
         const minimumPixelRatio = renderQuality === 'high' ? 0.82 : renderQuality === 'balanced' ? 0.76 : 0.68;
@@ -1712,8 +1712,8 @@
         const geometry = new THREE.SphereGeometry(baseRadius, segments, segments);
         const material = new THREE.MeshStandardMaterial({
             map: null,
-            roughness: 0.78,
-            metalness: 0.02
+            roughness: 0.68,
+            metalness: 0.015
         });
 
         function loadTextureWithFallback(urls, index = 0) {
@@ -1736,20 +1736,25 @@
         const globeMesh = new THREE.Mesh(geometry, material);
         scene.add(globeMesh);
 
-        // One fixed "sun" point lights both the Earth and the orbiting SP1DER emblem.
-        // The low ambient fill only keeps the unlit side from collapsing to pure black.
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.18);
+        // One fixed "sun" point lights BOTH the Earth and the orbiting SP1DER emblem.
+        // A very small neutral fill keeps the night side readable without creating a second
+        // directional highlight. The visible highlight/reflection direction still comes from sunLight.
+        const ambientLight = new THREE.AmbientLight(0xffffff, renderQuality === 'low' ? 0.20 : 0.24);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.PointLight(0xffffff, renderQuality === 'low' ? 34 : 52, 0, 2);
-        sunLight.position.set(4.8, 3.6, 5.4);
+        // physicallyCorrectLights is enabled above, so a PointLight needs substantially more
+        // intensity than the old non-physical setup. Keep one sun position and let both materials
+        // react to this exact same point in space.
+        const sunLight = new THREE.PointLight(0xffffff, renderQuality === 'low' ? 155 : renderQuality === 'balanced' ? 205 : 235, 0, 2);
+        sunLight.position.set(4.35, 3.15, 4.75);
         scene.add(sunLight);
 
         // Single orbiting SP1DER logo. The transparent PNG is treated as a
         // metallic 3D emblem: stacked alpha-cut planes provide thickness,
         // while a procedural environment map gives the chrome face reflections.
         const SP1DER_LOGO_TEXTURES = [
-            'https://i.hizliresim.com/cd44fi2l.png'
+            'https://i.hizliresim.com/cd44fi2l.png',
+            'https://i.hizliresim.com/cd44fi2l.png?v=2'
         ];
 
         let orbitLogoRig = null;
@@ -1920,10 +1925,10 @@
             const shellHeight = 1.52 * qualityScale;
             // Slightly smaller footprint while keeping the wrap-around silhouette.
             const thetaLength = 1.92 * qualityScale;
-            // More curve segments + thinner, denser depth layers reduce visible banding on the sides.
+            // High curve resolution + fewer, thinner depth shells reduce visible side banding.
             const radialSegments = renderQuality === 'low' ? 96 : renderQuality === 'balanced' ? 160 : 240;
-            const depthLayers = renderQuality === 'low' ? 10 : renderQuality === 'balanced' ? 14 : 18;
-            const totalDepth = renderQuality === 'low' ? 0.060 : renderQuality === 'balanced' ? 0.075 : 0.085;
+            const depthLayers = renderQuality === 'low' ? 6 : renderQuality === 'balanced' ? 8 : 10;
+            const totalDepth = renderQuality === 'low' ? 0.046 : renderQuality === 'balanced' ? 0.056 : 0.064;
 
             const frontMaterial = new THREE.MeshPhysicalMaterial({
                 map: texture,
@@ -1931,12 +1936,12 @@
                 bumpScale: renderQuality === 'low' ? 0.008 : 0.014,
                 color: 0xd9dde2,
                 metalness: 0.88,
-                roughness: 0.23,
-                clearcoat: 0.56,
-                clearcoatRoughness: 0.11,
-                reflectivity: 0.88,
+                roughness: 0.20,
+                clearcoat: 0.62,
+                clearcoatRoughness: 0.09,
+                reflectivity: 0.90,
                 envMap: chromeEnvironmentMap,
-                envMapIntensity: renderQuality === 'low' ? 0.28 : 0.42,
+                envMapIntensity: renderQuality === 'low' ? 0.52 : 0.72,
                 alphaTest: 0.10,
                 transparent: false,
                 side: THREE.DoubleSide,
@@ -1948,12 +1953,12 @@
                 map: texture,
                 color: 0x3a3f45,
                 metalness: 0.76,
-                roughness: 0.54,
-                clearcoat: 0.18,
-                clearcoatRoughness: 0.30,
-                reflectivity: 0.62,
+                roughness: 0.46,
+                clearcoat: 0.24,
+                clearcoatRoughness: 0.24,
+                reflectivity: 0.68,
                 envMap: chromeEnvironmentMap,
-                envMapIntensity: renderQuality === 'low' ? 0.10 : 0.18,
+                envMapIntensity: renderQuality === 'low' ? 0.24 : 0.34,
                 alphaTest: 0.10,
                 transparent: false,
                 side: THREE.DoubleSide,
@@ -1965,12 +1970,12 @@
                 map: texture,
                 color: 0xc8cdd3,
                 metalness: 0.90,
-                roughness: 0.22,
-                clearcoat: 0.48,
-                clearcoatRoughness: 0.12,
-                reflectivity: 0.88,
+                roughness: 0.18,
+                clearcoat: 0.58,
+                clearcoatRoughness: 0.09,
+                reflectivity: 0.92,
                 envMap: chromeEnvironmentMap,
-                envMapIntensity: renderQuality === 'low' ? 0.22 : 0.34,
+                envMapIntensity: renderQuality === 'low' ? 0.42 : 0.58,
                 alphaTest: 0.10,
                 transparent: false,
                 side: THREE.DoubleSide,
@@ -1986,7 +1991,7 @@
                 clearcoat: 0.30,
                 clearcoatRoughness: 0.22,
                 envMap: chromeEnvironmentMap,
-                envMapIntensity: 0.16,
+                envMapIntensity: 0.26,
                 alphaTest: 0.10,
                 transparent: false,
                 side: THREE.DoubleSide,
@@ -1998,8 +2003,8 @@
             for (let i = depthLayers; i >= 1; i--) {
                 const p = i / depthLayers;
                 const layerRadius = orbitLogoRadius - p * totalDepth;
-                const layerHeight = shellHeight * (1.0 - p * 0.020);
-                const layerTheta = thetaLength * (1.0 - p * 0.014);
+                const layerHeight = shellHeight * (1.0 - p * 0.006);
+                const layerTheta = thetaLength * (1.0 - p * 0.004);
                 const g = createCurvedLogoGeometry(layerRadius, layerHeight, layerTheta, radialSegments);
                 const m = new THREE.Mesh(g, sideMaterial);
                 m.renderOrder = 1;
